@@ -294,6 +294,9 @@
         const optionsEl = document.getElementById('options');
         const eventLogEl = document.getElementById('event-log');
 
+        // helper icons array
+        const optionIcons = ['balance-scale', 'chart-line', 'piggy-bank'];
+
         // Format money
         function formatMoney(value) {
             return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -301,7 +304,9 @@
 
         // Format percentage
         function formatPercent(value) {
-            return value.toFixed(1) + '%';
+            // ensure numeric
+            const num = Number(value);
+            return num.toFixed(1) + '%';
         }
 
         // Update UI
@@ -311,14 +316,14 @@
             taxRateEl.textContent = formatPercent(gameState.taxRate);
             yearEl.textContent = gameState.year;
             roundEl.textContent = gameState.round;
-           
+
             // Ensure values stay within bounds
             gameState.purchasePower = Math.max(0, Math.min(100, gameState.purchasePower));
             gameState.savings = Math.max(0, gameState.savings);
-           
+
             purchasePowerEl.style.width = gameState.purchasePower + '%';
             purchasePowerValueEl.textContent = formatPercent(gameState.purchasePower);
-           
+
             // Calculate savings percentage (assuming max savings of 5000 for visualization)
             const savingsPercent = (gameState.savings / 5000) * 100;
             savingsEl.style.width = Math.min(100, savingsPercent) + '%';
@@ -331,28 +336,27 @@
             eventElement.className = 'text-gray-300';
             eventElement.textContent = text;
             eventLogEl.prepend(eventElement);
-           
+
             // Keep only last 10 events
             if (eventLogEl.children.length > 10) {
                 eventLogEl.removeChild(eventLogEl.lastChild);
             }
         }
-    
 
         // Apply taxes and inflation
         function applyEconomicEffects() {
             // Apply taxes
             const taxAmount = gameState.money * (gameState.taxRate / 100);
             gameState.money -= taxAmount;
-            addEvent(Impostos deduzidos: -${formatMoney(taxAmount)} (${formatPercent(gameState.taxRate)}));
-           
+            addEvent(`Impostos deduzidos: -${formatMoney(taxAmount)} (${formatPercent(gameState.taxRate)})`);
+
             // Apply inflation (reduces purchase power)
             gameState.purchasePower *= (100 - gameState.inflation) / 100;
-            addEvent(Inflação reduziu seu poder de compra para ${formatPercent(gameState.purchasePower)});
-           
+            addEvent(`Inflação reduziu seu poder de compra para ${formatPercent(gameState.purchasePower)}`);
+
             // Savings grow with inflation (simple model)
             gameState.savings *= (100 + gameState.inflation * 0.5) / 100;
-           
+
             // Year advances
             gameState.year++;
         }
@@ -361,19 +365,19 @@
         function checkRandomEvent() {
             if (Math.random() < 0.3) {
                 const randomEvent = gameState.randomEvents[Math.floor(Math.random() * gameState.randomEvents.length)];
-                scenarioEl.innerHTML = <p class="font-medium text-red-600 mb-2"><i class="fas fa-exclamation-triangle mr-2"></i>Evento Aleatório!</p><p>${randomEvent.text}</p>;
-               
+                scenarioEl.innerHTML = `<p class="font-medium text-red-600 mb-2"><i class="fas fa-exclamation-triangle mr-2"></i>Evento Aleatório!</p><p>${randomEvent.text}</p>`;
+
                 // Apply effects
                 gameState.money += randomEvent.effect.money;
                 gameState.inflation += randomEvent.effect.inflation;
                 gameState.taxRate += randomEvent.effect.taxRate;
                 gameState.purchasePower += randomEvent.effect.purchasePower;
-               
-                addEvent(Evento: ${randomEvent.text});
-               
+
+                addEvent(`Evento: ${randomEvent.text}`);
+
                 // Update UI before showing options
                 updateUI();
-               
+
                 // Show continue button
                 optionsEl.innerHTML = '';
                 const continueBtn = document.createElement('button');
@@ -381,7 +385,7 @@
                 continueBtn.innerHTML = '<i class="fas fa-arrow-right mr-2"></i> Continuar';
                 continueBtn.onclick = nextRound;
                 optionsEl.appendChild(continueBtn);
-               
+
                 return true;
             }
             return false;
@@ -390,32 +394,33 @@
         // Next round
         function nextRound() {
             gameState.round++;
-           
+
             if (gameState.round > gameState.maxRounds) {
                 endGame();
                 return;
             }
-           
+
             // Apply economic effects between rounds
             applyEconomicEffects();
-           
+
             // Check for random event
             if (!checkRandomEvent()) {
                 // Show normal scenario
                 const scenario = gameState.scenarios[gameState.round - 1];
-                scenarioEl.innerHTML = <p>${scenario.text}</p>;
-               
+                scenarioEl.innerHTML = `<p>${scenario.text}</p>`;
+
                 // Show options
                 optionsEl.innerHTML = '';
                 scenario.options.forEach((option, index) => {
                     const btn = document.createElement('button');
                     btn.className = 'option-btn bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-lg transition flex items-center justify-center';
-                    btn.innerHTML = <i class="fas fa-${['balance-scale', 'chart-line', 'piggy-bank'][index]} mr-2"></i> ${option.text};
+                    const iconName = optionIcons[index] || 'circle';
+                    btn.innerHTML = `<i class="fas fa-${iconName} mr-2"></i> ${option.text}`;
                     btn.onclick = () => makeChoice(index);
                     optionsEl.appendChild(btn);
                 });
             }
-           
+
             updateUI();
         }
 
@@ -424,38 +429,39 @@
             if (gameState.round === 0) {
                 // Start game
                 gameState.round = 1;
-                scenarioEl.innerHTML = <p>${gameState.scenarios[0].text}</p>;
-               
+                scenarioEl.innerHTML = `<p>${gameState.scenarios[0].text}</p>`;
+
                 // Show options
                 optionsEl.innerHTML = '';
                 gameState.scenarios[0].options.forEach((option, index) => {
                     const btn = document.createElement('button');
                     btn.className = 'option-btn bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-lg transition flex items-center justify-center';
-                    btn.innerHTML = <i class="fas fa-${['balance-scale', 'chart-line', 'piggy-bank'][index]} mr-2"></i> ${option.text};
+                    const iconName = optionIcons[index] || 'circle';
+                    btn.innerHTML = `<i class="fas fa-${iconName} mr-2"></i> ${option.text}`;
                     btn.onclick = () => makeChoice(index);
                     optionsEl.appendChild(btn);
                 });
                 return;
             }
-           
+
             const scenario = gameState.scenarios[gameState.round - 1];
             const choice = scenario.options[choiceIndex];
-           
+
             // Apply choice effects
             gameState.money += choice.money;
             gameState.inflation += choice.inflation;
             gameState.taxRate += choice.taxRate;
             gameState.purchasePower += choice.purchasePower;
-           
+
             // Add some randomness to effects
             gameState.inflation += (Math.random() * 2 - 1);
             gameState.taxRate += (Math.random() * 1 - 0.5);
-           
+
             // Ensure tax rate stays between 0% and 50%
             gameState.taxRate = Math.max(0, Math.min(50, gameState.taxRate));
-           
-            addEvent(Você escolheu: ${choice.text});
-           
+
+            addEvent(`Você escolheu: ${choice.text}`);
+
             // Move to next round
             nextRound();
         }
@@ -464,7 +470,7 @@
         function endGame() {
             // Calculate final score
             const finalScore = gameState.money * (gameState.purchasePower / 100) + gameState.savings;
-           
+
             // Show results
             scenarioEl.innerHTML = `
                 <h3 class="text-2xl font-bold text-center mb-4 text-indigo-800">Fim do Jogo!</h3>
@@ -488,7 +494,7 @@
                 </div>
                 <p class="text-center text-gray-700">${getFinalMessage(finalScore)}</p>
             `;
-           
+
             // Show restart button
             optionsEl.innerHTML = '';
             const restartBtn = document.createElement('button');
@@ -496,8 +502,8 @@
             restartBtn.innerHTML = '<i class="fas fa-redo mr-2"></i> Jogar Novamente';
             restartBtn.onclick = restartGame;
             optionsEl.appendChild(restartBtn);
-           
-            addEvent(Jogo finalizado! Pontuação: ${formatMoney(finalScore)});
+
+            addEvent(`Jogo finalizado! Pontuação: ${formatMoney(finalScore)}`);
         }
 
         // Get final message based on score
@@ -518,13 +524,13 @@
             gameState.round = 0;
             gameState.purchasePower = 100;
             gameState.savings = 0;
-           
+
             // Clear event log
             eventLogEl.innerHTML = '<div class="text-gray-300">Novo jogo iniciado. Boa sorte!</div>';
-           
+
             // Show start screen
             scenarioEl.innerHTML = '<p class="text-gray-700">Bem-vindo ao jogo de economia! Você começa com R$ 1.000,00. A cada rodada, você enfrentará decisões financeiras que afetarão seu dinheiro, impostos e inflação. Tome decisões sábias para manter seu poder de compra!</p>';
-           
+
             // Show start button
             optionsEl.innerHTML = '';
             const startBtn = document.createElement('button');
@@ -532,7 +538,7 @@
             startBtn.innerHTML = '<i class="fas fa-play mr-2"></i> Começar Jogo';
             startBtn.onclick = () => makeChoice(0);
             optionsEl.appendChild(startBtn);
-           
+
             updateUI();
         }
 
