@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Economia em Jogo: Impostos & Inflação</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .progress-bar {
+            height: 20px;
+            transition: width 0.5s ease;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .pulse {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen font-sans">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-indigo-800 mb-2">Economia em Jogo</h1>
+            <h2 class="text-2xl text-indigo-600">Impostos & Inflação</h2>
+            <div class="mt-4 flex justify-center space-x-4">
+                <div class="tooltip">
+                    <span class="tooltiptext">Seu dinheiro atual</span>
+                    <div class="bg-white p-3 rounded-lg shadow flex items-center">
+                        <i class="fas fa-coins text-yellow-500 mr-2"></i>
+                        <span id="money" class="font-bold">R$ 1.000,00</span>
+                    </div>
+                </div>
+                <div class="tooltip">
+                    <span class="tooltiptext">Nível de inflação</span>
+                    <div class="bg-white p-3 rounded-lg shadow flex items-center">
+                        <i class="fas fa-chart-line text-red-500 mr-2"></i>
+                        <span id="inflation" class="font-bold">5%</span>
+                    </div>
+                </div>
+                <div class="tooltip">
+                    <span class="tooltiptext">Alíquota de impostos</span>
+                    <div class="bg-white p-3 rounded-lg shadow flex items-center">
+                        <i class="fas fa-percentage text-blue-500 mr-2"></i>
+                        <span id="tax-rate" class="font-bold">15%</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Game Area -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-8 fade-in">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold text-gray-800">Ano: <span id="year">2023</span></h3>
+                    <div class="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm font-medium">
+                        Rodada <span id="round">1</span>/10
+                    </div>
+                </div>
+
+                <!-- Progress Bars -->
+                <div class="space-y-4 mb-6">
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-sm font-medium text-gray-700">Poder de compra</span>
+                            <span id="purchase-power-value" class="text-sm font-medium text-gray-700">100%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2.5">
+                            <div id="purchase-power" class="progress-bar bg-green-500 rounded-full" style="width: 100%"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-sm font-medium text-gray-700">Reservas financeiras</span>
+                            <span id="savings-value" class="text-sm font-medium text-gray-700">R$ 0,00</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2.5">
+                            <div id="savings" class="progress-bar bg-blue-500 rounded-full" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scenario -->
+                <div id="scenario" class="bg-gray-50 p-4 rounded-lg mb-6">
+                    <p class="text-gray-700">Bem-vindo ao jogo de economia! Você começa com R$ 1.000,00. A cada rodada, você enfrentará decisões financeiras que afetarão seu dinheiro, impostos e inflação. Tome decisões sábias para manter seu poder de compra!</p>
+                </div>
+
+                <!-- Options -->
+                <div id="options" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <button class="option-btn bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-lg transition flex items-center justify-center" onclick="makeChoice(0)">
+                        <i class="fas fa-play mr-2"></i> Começar Jogo
+                    </button>
+                </div>
+
+                <!-- Event Log -->
+                <div class="bg-gray-800 text-white p-4 rounded-lg max-h-40 overflow-y-auto">
+                    <h4 class="font-medium mb-2 text-gray-300">Registro de Eventos:</h4>
+                    <div id="event-log" class="text-sm space-y-1">
+                        <div class="text-gray-300">Jogo iniciado. Boa sorte!</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tutorial -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-8 fade-in">
+            <div class="p-6">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">Como Jogar</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-indigo-50 p-4 rounded-lg">
+                        <div class="text-indigo-600 mb-2"><i class="fas fa-money-bill-wave text-2xl"></i></div>
+                        <h4 class="font-medium mb-1">Dinheiro</h4>
+                        <p class="text-sm text-gray-600">Seu dinheiro é afetado por gastos, investimentos, impostos e inflação.</p>
+                    </div>
+                    <div class="bg-green-50 p-4 rounded-lg">
+                        <div class="text-green-600 mb-2"><i class="fas fa-percent text-2xl"></i></div>
+                        <h4 class="font-medium mb-1">Impostos</h4>
+                        <p class="text-sm text-gray-600">Taxas de impostos podem aumentar ou diminuir baseado em suas escolhas e eventos aleatórios.</p>
+                    </div>
+                    <div class="bg-red-50 p-4 rounded-lg">
+                        <div class="text-red-600 mb-2"><i class="fas fa-chart-line text-2xl"></i></div>
+                        <h4 class="font-medium mb-1">Inflação</h4>
+                        <p class="text-sm text-gray-600">A inflação reduz seu poder de compra. Invista sabiamente para combatê-la.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game State
+        const gameState = {
+            money: 1000,
+            inflation: 5,
+            taxRate: 15,
+            year: 2023,
+            round: 0,
+            maxRounds: 10,
+            purchasePower: 100,
+            savings: 0,
+            events: [],
+            scenarios: [
+                {
+                    text: "O governo anunciou um aumento nos impostos para cobrir déficits. O que você faz?",
+                    options: [
+                        { text: "Protestar contra o aumento (pode reduzir impostos)", money: -50, inflation: 1, taxRate: -5, purchasePower: -2 },
+                        { text: "Aceitar e ajustar seu orçamento", money: 0, inflation: 0, taxRate: 0, purchasePower: -1 },
+                        { text: "Investir em educação fiscal para reduzir carga tributária", money: -200, inflation: -1, taxRate: -3, purchasePower: 1 }
+                    ]
+                },
+                {
+                    text: "A inflação subiu drasticamente! Seus R$100 agora compram o que R$90 compravam antes.",
+                    options: [
+                        { text: "Comprar itens essenciais agora antes que os preços subam mais", money: -300, inflation: 2, taxRate: 0, purchasePower: 3 },
+                        { text: "Investir em ativos protegidos contra inflação", money: -400, inflation: -3, taxRate: 0, purchasePower: 5 },
+                        { text: "Não fazer nada e esperar que melhore", money: 0, inflation: 1, taxRate: 0, purchasePower: -5 }
+                    ]
+                },
+                {
+                    text: "Você recebeu um bônus no trabalho! Como vai usar esse dinheiro extra?",
+                    options: [
+                        { text: "Gastar em bens de consumo", money: 500, inflation: 1, taxRate: 0, purchasePower: -1 },
+                        { text: "Pagar dívidas com juros altos", money: 300, inflation: -1, taxRate: 0, purchasePower: 2 },
+                        { text: "Investir em um fundo de índice", money: 400, inflation: -2, taxRate: 0, purchasePower: 3 }
+                    ]
+                },
+                {
+                    text: "O mercado de ações caiu drasticamente. Seus investimentos perderam valor.",
+                    options: [
+                        { text: "Vender tudo para evitar mais perdas", money: -200, inflation: 0, taxRate: 0, purchasePower: -3 },
+                        { text: "Manter os investimentos e esperar a recuperação", money: 0, inflation: -1, taxRate: 0, purchasePower: 0 },
+                        { text: "Comprar mais ações a preços baixos", money: -300, inflation: -2, taxRate: 0, purchasePower: 2 }
+                    ]
+                },
+                {
+                    text: "Uma nova lei tributária permite deduzir investimentos em educação da base de cálculo.",
+                    options: [
+                        { text: "Investir em um curso profissionalizante", money: -250, inflation: 0, taxRate: -2, purchasePower: 3 },
+                        { text: "Ignorar e manter o dinheiro", money: 0, inflation: 0, taxRate: 0, purchasePower: 0 },
+                        { text: "Investir em educação para toda a família", money: -600, inflation: 0, taxRate: -5, purchasePower: 5 }
+                    ]
+                },
+                {
+                    text: "Os preços dos alimentos subiram 20% devido a uma seca nas regiões produtoras.",
+                    options: [
+                        { text: "Comprar alimentos não perecíveis em grande quantidade", money: -350, inflation: 1, taxRate: 0, purchasePower: 2 },
+                        { text: "Mudar para marcas mais baratas", money: -150, inflation: 0, taxRate: 0, purchasePower: -1 },
+                        { text: "Plantar uma horta em casa", money: -100, inflation: -1, taxRate: 0, purchasePower: 3 }
+                    ]
+                },
+                {
+                    text: "O banco central aumentou os juros para combater a inflação.",
+                    options: [
+                        { text: "Aplicar dinheiro na poupança", money: 100, inflation: -1, taxRate: 0, purchasePower: 1 },
+                        { text: "Pagar parcelas de financiamentos", money: -300, inflation: -2, taxRate: 0, purchasePower: 2 },
+                        { text: "Não mudar sua estratégia", money: 0, inflation: 0, taxRate: 0, purchasePower: 0 }
+                    ]
+                },
+                {
+                    text: "Seu município aumentou o IPTU para melhorar a infraestrutura.",
+                    options: [
+                        { text: "Pagar à vista com desconto", money: -400, inflation: 0, taxRate: 0, purchasePower: 1 },
+                        { text: "Parcelar em 12 vezes", money: -450, inflation: 1, taxRate: 0, purchasePower: -1 },
+                        { text: "Contestar a avaliação do imóvel", money: -100, inflation: 0, taxRate: -1, purchasePower: 0 }
+                    ]
+                },
+                {
+                    text: "O dólar subiu 15%, aumentando o preço de produtos importados.",
+                    options: [
+                        { text: "Comprar dólares como reserva", money: -300, inflation: -1, taxRate: 0, purchasePower: 2 },
+                        { text: "Priorizar produtos nacionais", money: -200, inflation: -2, taxRate: 0, purchasePower: 3 },
+                        { text: "Não mudar hábitos de consumo", money: 0, inflation: 1, taxRate: 0, purchasePower: -3 }
+                    ]
+                },
+                {
+                    text: "Fim do ano fiscal! Hora de declarar seu imposto de renda.",
+                    options: [
+                        { text: "Contratar um contador para otimizar", money: -150, inflation: 0, taxRate: -3, purchasePower: 2 },
+                        { text: "Declarar você mesmo", money: 0, inflation: 0, taxRate: 0, purchasePower: 0 },
+                        { text: "Investir em doações dedutíveis", money: -200, inflation: 0, taxRate: -4, purchasePower: 3 }
+                    ]
+                }
+            ],
+            randomEvents: [
+                {
+                    text: "Desvalorização cambial! Produtos importados ficaram mais caros.",
+                    effect: { money: 0, inflation: 3, taxRate: 0, purchasePower: -5 }
+                },
+                {
+                    text: "Reforma tributária simplificou o sistema e reduziu impostos!",
+                    effect: { money: 100, inflation: -1, taxRate: -4, purchasePower: 3 }
+                },
+                {
+                    text: "Crise política aumentou a incerteza econômica.",
+                    effect: { money: -100, inflation: 2, taxRate: 1, purchasePower: -3 }
+                },
+                {
+                    text: "Nova tecnologia aumentou a produtividade da economia!",
+                    effect: { money: 150, inflation: -2, taxRate: 0, purchasePower: 4 }
+                },
+                {
+                    text: "Golpe financeiro! Você perdeu parte de suas economias.",
+                    effect: { money: -300, inflation: 0, taxRate: 0, purchasePower: -4 }
+                }
+            ]
+        };
+
+        // DOM Elements
+        const moneyEl = document.getElementById('money');
+        const inflationEl = document.getElementById('inflation');
+        const taxRateEl = document.getElementById('tax-rate');
+        const yearEl = document.getElementById('year');
+        const roundEl = document.getElementById('round');
+        const purchasePowerEl = document.getElementById('purchase-power');
+        const purchasePowerValueEl = document.getElementById('purchase-power-value');
+        const savingsEl = document.getElementById('savings');
+        const savingsValueEl = document.getElementById('savings-value');
+        const scenarioEl = document.getElementById('scenario');
+        const optionsEl = document.getElementById('options');
+        const eventLogEl = document.getElementById('event-log');
+
+        // Format money
+        function formatMoney(value) {
+            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+        }
+
+        // Format percentage
+        function formatPercent(value) {
+            return value.toFixed(1) + '%';
+        }
+
+        // Update UI
+        function updateUI() {
+            moneyEl.textContent = formatMoney(gameState.money);
+            inflationEl.textContent = formatPercent(gameState.inflation);
+            taxRateEl.textContent = formatPercent(gameState.taxRate);
+            yearEl.textContent = gameState.year;
+            roundEl.textContent = gameState.round;
+           
+            // Ensure values stay within bounds
+            gameState.purchasePower = Math.max(0, Math.min(100, gameState.purchasePower));
+            gameState.savings = Math.max(0, gameState.savings);
+           
+            purchasePowerEl.style.width = gameState.purchasePower + '%';
+            purchasePowerValueEl.textContent = formatPercent(gameState.purchasePower);
+           
+            // Calculate savings percentage (assuming max savings of 5000 for visualization)
+            const savingsPercent = (gameState.savings / 5000) * 100;
+            savingsEl.style.width = Math.min(100, savingsPercent) + '%';
+            savingsValueEl.textContent = formatMoney(gameState.savings);
+        }
+
+        // Add event to log
+        function addEvent(text) {
+            const eventElement = document.createElement('div');
+            eventElement.className = 'text-gray-300';
+            eventElement.textContent = text;
+            eventLogEl.prepend(eventElement);
+           
+            // Keep only last 10 events
+            if (eventLogEl.children.length > 10) {
+                eventLogEl.removeChild(eventLogEl.lastChild);
+            }
+        }
+    
+
+        // Apply taxes and inflation
+        function applyEconomicEffects() {
+            // Apply taxes
+            const taxAmount = gameState.money * (gameState.taxRate / 100);
+            gameState.money -= taxAmount;
+            addEvent(Impostos deduzidos: -${formatMoney(taxAmount)} (${formatPercent(gameState.taxRate)}));
+           
+            // Apply inflation (reduces purchase power)
+            gameState.purchasePower *= (100 - gameState.inflation) / 100;
+            addEvent(Inflação reduziu seu poder de compra para ${formatPercent(gameState.purchasePower)});
+           
+            // Savings grow with inflation (simple model)
+            gameState.savings *= (100 + gameState.inflation * 0.5) / 100;
+           
+            // Year advances
+            gameState.year++;
+        }
+
+        // Random event chance (30%)
+        function checkRandomEvent() {
+            if (Math.random() < 0.3) {
+                const randomEvent = gameState.randomEvents[Math.floor(Math.random() * gameState.randomEvents.length)];
+                scenarioEl.innerHTML = <p class="font-medium text-red-600 mb-2"><i class="fas fa-exclamation-triangle mr-2"></i>Evento Aleatório!</p><p>${randomEvent.text}</p>;
+               
+                // Apply effects
+                gameState.money += randomEvent.effect.money;
+                gameState.inflation += randomEvent.effect.inflation;
+                gameState.taxRate += randomEvent.effect.taxRate;
+                gameState.purchasePower += randomEvent.effect.purchasePower;
+               
+                addEvent(Evento: ${randomEvent.text});
+               
+                // Update UI before showing options
+                updateUI();
+               
+                // Show continue button
+                optionsEl.innerHTML = '';
+                const continueBtn = document.createElement('button');
+                continueBtn.className = 'option-btn bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-lg transition flex items-center justify-center w-full';
+                continueBtn.innerHTML = '<i class="fas fa-arrow-right mr-2"></i> Continuar';
+                continueBtn.onclick = nextRound;
+                optionsEl.appendChild(continueBtn);
+               
+                return true;
+            }
+            return false;
+        }
+
+        // Next round
+        function nextRound() {
+            gameState.round++;
+           
+            if (gameState.round > gameState.maxRounds) {
+                endGame();
+                return;
+            }
+           
+            // Apply economic effects between rounds
+            applyEconomicEffects();
+           
+            // Check for random event
+            if (!checkRandomEvent()) {
+                // Show normal scenario
+                const scenario = gameState.scenarios[gameState.round - 1];
+                scenarioEl.innerHTML = <p>${scenario.text}</p>;
+               
+                // Show options
+                optionsEl.innerHTML = '';
+                scenario.options.forEach((option, index) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'option-btn bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-lg transition flex items-center justify-center';
+                    btn.innerHTML = <i class="fas fa-${['balance-scale', 'chart-line', 'piggy-bank'][index]} mr-2"></i> ${option.text};
+                    btn.onclick = () => makeChoice(index);
+                    optionsEl.appendChild(btn);
+                });
+            }
+           
+            updateUI();
+        }
+
+        // Make choice
+        function makeChoice(choiceIndex) {
+            if (gameState.round === 0) {
+                // Start game
+                gameState.round = 1;
+                scenarioEl.innerHTML = <p>${gameState.scenarios[0].text}</p>;
+               
+                // Show options
+                optionsEl.innerHTML = '';
+                gameState.scenarios[0].options.forEach((option, index) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'option-btn bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-lg transition flex items-center justify-center';
+                    btn.innerHTML = <i class="fas fa-${['balance-scale', 'chart-line', 'piggy-bank'][index]} mr-2"></i> ${option.text};
+                    btn.onclick = () => makeChoice(index);
+                    optionsEl.appendChild(btn);
+                });
+                return;
+            }
+           
+            const scenario = gameState.scenarios[gameState.round - 1];
+            const choice = scenario.options[choiceIndex];
+           
+            // Apply choice effects
+            gameState.money += choice.money;
+            gameState.inflation += choice.inflation;
+            gameState.taxRate += choice.taxRate;
+            gameState.purchasePower += choice.purchasePower;
+           
+            // Add some randomness to effects
+            gameState.inflation += (Math.random() * 2 - 1);
+            gameState.taxRate += (Math.random() * 1 - 0.5);
+           
+            // Ensure tax rate stays between 0% and 50%
+            gameState.taxRate = Math.max(0, Math.min(50, gameState.taxRate));
+           
+            addEvent(Você escolheu: ${choice.text});
+           
+            // Move to next round
+            nextRound();
+        }
+
+        // End game
+        function endGame() {
+            // Calculate final score
+            const finalScore = gameState.money * (gameState.purchasePower / 100) + gameState.savings;
+           
+            // Show results
+            scenarioEl.innerHTML = `
+                <h3 class="text-2xl font-bold text-center mb-4 text-indigo-800">Fim do Jogo!</h3>
+                <div class="bg-indigo-50 p-4 rounded-lg mb-4">
+                    <div class="flex justify-between mb-2">
+                        <span>Dinheiro final:</span>
+                        <span class="font-medium">${formatMoney(gameState.money)}</span>
+                    </div>
+                    <div class="flex justify-between mb-2">
+                        <span>Poder de compra:</span>
+                        <span class="font-medium">${formatPercent(gameState.purchasePower)}</span>
+                    </div>
+                    <div class="flex justify-between mb-2">
+                        <span>Reservas financeiras:</span>
+                        <span class="font-medium">${formatMoney(gameState.savings)}</span>
+                    </div>
+                    <div class="flex justify-between font-bold text-lg mt-3 pt-3 border-t border-indigo-200">
+                        <span>Pontuação final:</span>
+                        <span>${formatMoney(finalScore)}</span>
+                    </div>
+                </div>
+                <p class="text-center text-gray-700">${getFinalMessage(finalScore)}</p>
+            `;
+           
+            // Show restart button
+            optionsEl.innerHTML = '';
+            const restartBtn = document.createElement('button');
+            restartBtn.className = 'option-btn bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-lg transition flex items-center justify-center w-full pulse';
+            restartBtn.innerHTML = '<i class="fas fa-redo mr-2"></i> Jogar Novamente';
+            restartBtn.onclick = restartGame;
+            optionsEl.appendChild(restartBtn);
+           
+            addEvent(Jogo finalizado! Pontuação: ${formatMoney(finalScore)});
+        }
+
+        // Get final message based on score
+        function getFinalMessage(score) {
+            if (score > 3000) return "Excelente trabalho! Você dominou os conceitos de impostos e inflação, mantendo um forte poder de compra.";
+            if (score > 2000) return "Bom resultado! Você entende bem como impostos e inflação afetam suas finanças.";
+            if (score > 1000) return "Resultado médio. Tente aprender mais sobre economia para melhorar suas decisões.";
+            return "Você enfrentou dificuldades. Estude mais sobre impostos e inflação para se proteger melhor.";
+        }
+
+        // Restart game
+        function restartGame() {
+            // Reset game state
+            gameState.money = 1000;
+            gameState.inflation = 5;
+            gameState.taxRate = 15;
+            gameState.year = 2023;
+            gameState.round = 0;
+            gameState.purchasePower = 100;
+            gameState.savings = 0;
+           
+            // Clear event log
+            eventLogEl.innerHTML = '<div class="text-gray-300">Novo jogo iniciado. Boa sorte!</div>';
+           
+            // Show start screen
+            scenarioEl.innerHTML = '<p class="text-gray-700">Bem-vindo ao jogo de economia! Você começa com R$ 1.000,00. A cada rodada, você enfrentará decisões financeiras que afetarão seu dinheiro, impostos e inflação. Tome decisões sábias para manter seu poder de compra!</p>';
+           
+            // Show start button
+            optionsEl.innerHTML = '';
+            const startBtn = document.createElement('button');
+            startBtn.className = 'option-btn bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-lg transition flex items-center justify-center';
+            startBtn.innerHTML = '<i class="fas fa-play mr-2"></i> Começar Jogo';
+            startBtn.onclick = () => makeChoice(0);
+            optionsEl.appendChild(startBtn);
+           
+            updateUI();
+        }
+
+        // Initialize game
+        updateUI();
+    </script>
+</body>
+</html>
